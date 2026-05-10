@@ -22,6 +22,7 @@ export default function HistoryScreen({ navigation }) {
     try {
       setLoading(true);
       const data = await AsyncStorage.getItem('readings');
+      console.log('loaded readings:', data);
       if (data) {
         setReadings(JSON.parse(data));
       } else {

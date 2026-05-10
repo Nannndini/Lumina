@@ -51,14 +51,17 @@ export default function ResultScreen({ route, navigation }) {
       // Avoid duplicate saves on re-render
       if (readings[0]?.id === result._saveId) return;
       const saveId = Date.now().toString();
-      readings.unshift({
+      const newReading = {
         ...result,
         _saveId: saveId,
         imageUri,
         date: new Date().toLocaleDateString(),
         id: saveId,
-      });
-      await AsyncStorage.setItem('readings', JSON.stringify(readings.slice(0, 10)));
+      };
+      readings.unshift(newReading);
+      const serialized = JSON.stringify(readings.slice(0, 10));
+      await AsyncStorage.setItem('readings', serialized);
+      console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 10).length);
     } catch (e) {
       console.error('saveReading error:', e);
     }
@@ -104,7 +107,7 @@ export default function ResultScreen({ route, navigation }) {
 
           {/* Photo in circular frame */}
           {imageUri && (
-            <View style={[styles.imageRing, { borderColor: hex, shadowColor: hex }]}>
+            <View style={[styles.imageRing, { borderColor: hex, borderWidth: 3, shadowColor: hex, boxShadow: `0 0 30px 10px ${hex}60` }]}>
               <Image source={{ uri: imageUri }} style={styles.photo} />
               <View style={[styles.auraGlow, { backgroundColor: hexLight }]} />
             </View>
