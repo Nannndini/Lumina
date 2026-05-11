@@ -1,7 +1,13 @@
+/**
+ * ResultScreen — displays the full aura reading result.
+ * Features: CompatibilityChart (Req 1), Polished AuraCard (Req 7), Mood indicator (Req 3)
+ */
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
+import CompatibilityChart from '../components/CompatibilityChart';
 
 export default function ResultScreen({ route, navigation }) {
   const { result, imageUri } = route.params || {};
@@ -27,6 +33,11 @@ export default function ResultScreen({ route, navigation }) {
   const hex = result.hex || '#a855f7';
   const hexLight = hex + '40';
   const hexMid = hex + '80';
+
+  // Human-readable date/time for the card
+  const readingDateTime = result.timestamp
+    ? new Date(result.timestamp).toLocaleString()
+    : result.date || new Date().toLocaleDateString();
 
   useEffect(() => {
     saveReading();
@@ -56,30 +67,37 @@ export default function ResultScreen({ route, navigation }) {
         _saveId: saveId,
         imageUri,
         date: new Date().toLocaleDateString(),
+        timestamp: Date.now(),
         id: saveId,
       };
       readings.unshift(newReading);
-      const serialized = JSON.stringify(readings.slice(0, 10));
+      const serialized = JSON.stringify(readings.slice(0, 50));
       await AsyncStorage.setItem('readings', serialized);
-      console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 10).length);
+      console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 50).length);
     } catch (e) {
       console.error('saveReading error:', e);
     }
   }
 
+  /**
+   * Builds the rich clipboard share text.
+   * Feature: lumina-production-features, Property 12: Clipboard copy contains required fields
+   */
+  function buildShareText() {
+    return `✨ My Lumina Aura Reading ✨\n\nAura Color: ${result.color}\nArchetype: ${result.archetype}\nVibe Score: ${result.vibe_score}/100\nEnergy: ${result.energy}\n\n"${result.title}"\n\n${result.breakdown}\n\n— Scanned with Lumina AI Aura Reading`;
+  }
+
   async function handleShare() {
-    const shareText = `Check out my aura on Lumina! I got ${result.archetype} with a vibe score of ${result.vibe_score}/100 ✨`;
+    const shareText = buildShareText();
     if (Platform.OS === 'web') {
       try {
         await navigator.clipboard.writeText(shareText);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
       } catch (e) {
-        // Fallback: window.prompt for older browsers
         window.prompt('Copy this text:', shareText);
       }
     } else {
-      // React Native Share API
       try {
         const { Share } = require('react-native');
         await Share.share({ message: shareText });
@@ -101,15 +119,28 @@ export default function ResultScreen({ route, navigation }) {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
 
-        <Animated.View style={[styles.auraCard, { borderColor: hex, opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        {/* AuraCard — max-width 500px, white border, polished */}
+        <Animated.View
+          style={[
+            styles.auraCard,
+            { borderColor: hex, opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
           {/* Glow halo behind photo */}
           <View style={[styles.glowHalo, { backgroundColor: hexLight, shadowColor: hex }]} />
 
           {/* Photo in circular frame */}
           {imageUri && (
-            <View style={[styles.imageRing, { borderColor: hex, borderWidth: 3, shadowColor: hex, boxShadow: `0 0 30px 10px ${hex}60` }]}>
+            <View style={[styles.imageRing, { borderColor: hex, shadowColor: hex }]}>
               <Image source={{ uri: imageUri }} style={styles.photo} />
               <View style={[styles.auraGlow, { backgroundColor: hexLight }]} />
+            </View>
+          )}
+
+          {/* Mood indicator */}
+          {result.mood && (
+            <View style={styles.moodIndicator}>
+              <Text style={styles.moodText}>Scanned while feeling {result.mood}</Text>
             </View>
           )}
 
@@ -143,10 +174,10 @@ export default function ResultScreen({ route, navigation }) {
             <Text style={[styles.energyText, { color: hex }]}>⚡ {result.energy} Energy</Text>
           </View>
 
-          {/* Breakdown in italic mystical style */}
+          {/* Breakdown */}
           <Text style={[styles.breakdown, { color: '#e9d5ff' }]}>{result.breakdown}</Text>
 
-          {/* Strengths as colored pill badges */}
+          {/* Strengths */}
           <Text style={styles.sectionLabel}>✦ Strengths</Text>
           <View style={styles.strengthsRow}>
             {result.strengths?.map((s, i) => (
@@ -164,7 +195,7 @@ export default function ResultScreen({ route, navigation }) {
             </>
           )}
 
-          {/* Compatibility */}
+          {/* Compatibility text */}
           {result.compatibility && (
             <>
               <Text style={styles.sectionLabel}>💫 Compatibility</Text>
@@ -172,8 +203,15 @@ export default function ResultScreen({ route, navigation }) {
             </>
           )}
 
+          {/* Compatibility Chart (Req 1) */}
+          <CompatibilityChart auraColor={result.color} auraHex={result.hex} />
+
           {/* Divider */}
           <View style={[styles.divider, { backgroundColor: hexMid }]} />
+
+          {/* Watermark (Req 7) */}
+          <Text style={styles.watermark}>✨ Lumina — AI Aura Reading</Text>
+          <Text style={styles.readingDate}>{readingDateTime}</Text>
 
           {/* Share button */}
           <TouchableOpacity
@@ -219,13 +257,15 @@ const styles = StyleSheet.create({
   auraCard: {
     backgroundColor: '#0d0020',
     borderRadius: 28,
+    // White semi-transparent border (Req 7.1)
     borderWidth: 1.5,
     padding: 28,
     width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
     alignItems: 'center',
     marginBottom: 20,
     overflow: 'hidden',
-    // Shadow for native
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -248,7 +288,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    borderWidth: 4,
+    borderWidth: 3,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -265,6 +305,19 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     opacity: 0.35,
+  },
+
+  moodIndicator: {
+    backgroundColor: '#ffffff10',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  moodText: {
+    color: '#c084fc',
+    fontSize: 13,
+    fontStyle: 'italic',
   },
 
   colorBadge: {
@@ -370,10 +423,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 4,
   },
 
-  divider: { width: '60%', height: 1, opacity: 0.3, marginBottom: 20 },
+  divider: { width: '60%', height: 1, opacity: 0.3, marginBottom: 16, marginTop: 8 },
+
+  // Watermark (Req 7.2)
+  watermark: {
+    color: '#ffffff40',
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  // Date/time (Req 7.3)
+  readingDate: {
+    color: '#ffffff30',
+    fontSize: 10,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
 
   shareBtn: {
     borderWidth: 1.5,
@@ -390,6 +459,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 30,
     width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
     alignItems: 'center',
     marginBottom: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -406,6 +477,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 20,
     width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
