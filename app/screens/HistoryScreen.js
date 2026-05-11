@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Image, Alert
+  TouchableOpacity, Image, Alert, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,8 +30,22 @@ export default function HistoryScreen({ navigation }) {
   async function loadReadings() {
     try {
       setLoading(true);
-      const data = await Storage.getItem('readings');
-      console.log('loaded readings:', data);
+
+      let data = await Storage.getItem('readings');
+
+      // On web, also check legacy prefixed keys and migrate data if found
+      if (Platform.OS === 'web' && !data) {
+        data = localStorage.getItem('Lumina_readings') || localStorage.getItem('lumina_readings') || null;
+        if (data) {
+          // Migrate to bare key and clean up old keys
+          localStorage.setItem('readings', data);
+          localStorage.removeItem('Lumina_readings');
+          localStorage.removeItem('lumina_readings');
+          console.log('Migrated readings from legacy key to bare key');
+        }
+      }
+
+      console.log('loaded readings:', data ? JSON.parse(data).length + ' readings' : 'null');
       const countStr = await Storage.getItem('scanCount');
       const streakStr = await Storage.getItem('streakCount');
 
@@ -106,8 +120,18 @@ export default function HistoryScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await Storage.removeItem('readings');
-              await Storage.removeItem('lastScanDate');
+              if (Platform.OS === 'web') {
+                // Nuke all key variants that may exist from previous storage implementations
+                localStorage.removeItem('readings');
+                localStorage.removeItem('Lumina_readings');
+                localStorage.removeItem('lumina_readings');
+                localStorage.removeItem('lastScanDate');
+                localStorage.removeItem('Lumina_lastScanDate');
+                localStorage.removeItem('lumina_lastScanDate');
+              } else {
+                await Storage.removeItem('readings');
+                await Storage.removeItem('lastScanDate');
+              }
               setReadings([]);
             } catch (e) {
               console.error('clearHistory error:', e);
