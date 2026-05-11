@@ -1,62 +1,51 @@
 /**
  * storage.js — cross-platform storage utility for Lumina.
  *
- * On web, AsyncStorage uses an internal prefix that makes keys inconsistent
- * between saves and loads. This module bypasses AsyncStorage on web and uses
- * localStorage directly with a 'lumina_' prefix, ensuring reliable reads.
+ * On web, @react-native-async-storage/async-storage adds an internal prefix
+ * (e.g. "Lumina_") to localStorage keys. To avoid key mismatches between
+ * saves and loads, this module bypasses AsyncStorage on web and writes
+ * directly to localStorage using the bare key name — no prefix added.
  *
  * On native, it delegates to AsyncStorage as normal.
- *
- * All keys are automatically prefixed with 'lumina_' so they never collide
- * with other apps sharing the same localStorage origin.
  */
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const PREFIX = 'lumina_';
-
-function prefixed(key) {
-  return PREFIX + key;
-}
-
 export const Storage = {
   async getItem(key) {
-    const k = prefixed(key);
     if (Platform.OS === 'web') {
       try {
-        return localStorage.getItem(k);
+        return localStorage.getItem(key);
       } catch (e) {
         console.error('Storage.getItem error (web):', e);
         return null;
       }
     }
-    return AsyncStorage.getItem(k);
+    return AsyncStorage.getItem(key);
   },
 
   async setItem(key, value) {
-    const k = prefixed(key);
     if (Platform.OS === 'web') {
       try {
-        localStorage.setItem(k, value);
+        localStorage.setItem(key, value);
       } catch (e) {
         console.error('Storage.setItem error (web):', e);
       }
       return;
     }
-    return AsyncStorage.setItem(k, value);
+    return AsyncStorage.setItem(key, value);
   },
 
   async removeItem(key) {
-    const k = prefixed(key);
     if (Platform.OS === 'web') {
       try {
-        localStorage.removeItem(k);
+        localStorage.removeItem(key);
       } catch (e) {
         console.error('Storage.removeItem error (web):', e);
       }
       return;
     }
-    return AsyncStorage.removeItem(k);
+    return AsyncStorage.removeItem(key);
   },
 };

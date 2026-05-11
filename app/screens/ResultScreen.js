@@ -57,6 +57,11 @@ export default function ResultScreen({ route, navigation }) {
 
   async function saveReading() {
     try {
+      // If result already has an id, it was saved in HomeScreen before navigation — skip duplicate save
+      if (result.id) {
+        console.log('saveReading: reading already saved with id', result.id, '— skipping duplicate');
+        return;
+      }
       const existing = await Storage.getItem('readings');
       const readings = existing ? JSON.parse(existing) : [];
       // Avoid duplicate saves on re-render
@@ -70,12 +75,13 @@ export default function ResultScreen({ route, navigation }) {
         timestamp: Date.now(),
         id: saveId,
       };
+      console.log('Saving reading:', newReading);
       readings.unshift(newReading);
       const serialized = JSON.stringify(readings.slice(0, 50));
       await Storage.setItem('readings', serialized);
       // Verify the save succeeded (debug)
       const saved = await Storage.getItem('readings');
-      console.log('SAVED READINGS:', saved);
+      console.log('SAVED READINGS:', saved ? JSON.parse(saved).length + ' readings' : 'null');
       console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 50).length);
     } catch (e) {
       console.error('saveReading error:', e);

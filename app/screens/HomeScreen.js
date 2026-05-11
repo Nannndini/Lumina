@@ -211,7 +211,30 @@ export default function HomeScreen({ navigation }) {
       // Mark today's scan
       await Storage.setItem('lastScanDate', TODAY);
 
-      navigation.navigate('Result', { result, imageUri: image.uri });
+      // Build and save the reading NOW, before navigating (reliable on web)
+      const saveId = Date.now().toString();
+      const newReading = {
+        ...result,
+        _saveId: saveId,
+        imageUri: image.uri,
+        date: new Date().toLocaleDateString(),
+        timestamp: Date.now(),
+        id: saveId,
+      };
+      try {
+        const existing = await Storage.getItem('readings');
+        const readings = existing ? JSON.parse(existing) : [];
+        readings.unshift(newReading);
+        const serialized = JSON.stringify(readings.slice(0, 50));
+        console.log('Saving reading:', newReading);
+        await Storage.setItem('readings', serialized);
+        const saved = await Storage.getItem('readings');
+        console.log('SAVED READINGS count:', saved ? JSON.parse(saved).length : 0);
+      } catch (saveErr) {
+        console.error('Failed to save reading:', saveErr);
+      }
+
+      navigation.navigate('Result', { result: newReading, imageUri: image.uri });
     } catch (e) {
       console.error('scanMyAura error:', e);
       setError(e);
