@@ -21,7 +21,7 @@ import StreakBadge from '../components/StreakBadge';
 import MoodSelector from '../components/MoodSelector';
 import PulsingRing from '../components/PulsingRing';
 import CosmicLoader from '../components/CosmicLoader';
-
+import { Storage } from '../lib/storage';
 // Inject floating star CSS on web (Req 8.5, 8.6)
 if (Platform.OS === 'web') {
   const style = document.createElement('style');
@@ -135,9 +135,9 @@ export default function HomeScreen({ navigation }) {
   async function loadData() {
     try {
       // Check today's reading
-      const lastDate = await AsyncStorage.getItem('lastScanDate');
+      const lastDate = await Storage.getItem('lastScanDate');
       if (lastDate === TODAY) {
-        const data = await AsyncStorage.getItem('readings');
+        const data = await Storage.getItem('readings');
         const readings = data ? JSON.parse(data) : [];
         if (readings.length > 0) {
           setTodayReading(readings[0]);
@@ -145,15 +145,15 @@ export default function HomeScreen({ navigation }) {
       }
 
       // Load scan count (Req 2)
-      const countStr = await AsyncStorage.getItem('scanCount');
+      const countStr = await Storage.getItem('scanCount');
       setScanCount(countStr ? parseInt(countStr, 10) : 0);
 
       // Load streak count (Req 4)
-      const streakStr = await AsyncStorage.getItem('streakCount');
+      const streakStr = await Storage.getItem('streakCount');
       setStreakCount(streakStr ? parseInt(streakStr, 10) : 0);
 
       // Load last reading for welcome back (Req 8.1, 8.2)
-      const readingsData = await AsyncStorage.getItem('readings');
+      const readingsData = await Storage.getItem('readings');
       const readings = readingsData ? JSON.parse(readingsData) : [];
       if (readings.length > 0) {
         setLastReading(readings[0]);
@@ -198,18 +198,18 @@ export default function HomeScreen({ navigation }) {
 
       // Update scan count (Req 2.1, Property 4)
       const newCount = scanCount + 1;
-      await AsyncStorage.setItem('scanCount', newCount.toString());
+      await Storage.setItem('scanCount', newCount.toString());
       setScanCount(newCount);
 
       // Update streak (Req 4.1, Property 8)
-      const lastStreakDate = await AsyncStorage.getItem('lastStreakDate');
+      const lastStreakDate = await Storage.getItem('lastStreakDate');
       const newStreak = computeNewStreak(lastStreakDate, TODAY, streakCount);
-      await AsyncStorage.setItem('streakCount', newStreak.toString());
-      await AsyncStorage.setItem('lastStreakDate', TODAY);
+      await Storage.setItem('streakCount', newStreak.toString());
+      await Storage.setItem('lastStreakDate', TODAY);
       setStreakCount(newStreak);
 
       // Mark today's scan
-      await AsyncStorage.setItem('lastScanDate', TODAY);
+      await Storage.setItem('lastScanDate', TODAY);
 
       navigation.navigate('Result', { result, imageUri: image.uri });
     } catch (e) {

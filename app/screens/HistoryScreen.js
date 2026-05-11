@@ -11,8 +11,8 @@ import {
   TouchableOpacity, Image, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { Storage } from '../lib/storage';
 
 export default function HistoryScreen({ navigation }) {
   const [readings, setReadings] = useState([]);
@@ -30,10 +30,10 @@ export default function HistoryScreen({ navigation }) {
   async function loadReadings() {
     try {
       setLoading(true);
-      const data = await AsyncStorage.getItem('readings');
+      const data = await Storage.getItem('readings');
       console.log('loaded readings:', data);
-      const countStr = await AsyncStorage.getItem('scanCount');
-      const streakStr = await AsyncStorage.getItem('streakCount');
+      const countStr = await Storage.getItem('scanCount');
+      const streakStr = await Storage.getItem('streakCount');
 
       setScanCount(countStr ? parseInt(countStr, 10) : 0);
       setStreakCount(streakStr ? parseInt(streakStr, 10) : 0);
@@ -63,10 +63,10 @@ export default function HistoryScreen({ navigation }) {
    */
   async function deleteReading(id) {
     try {
-      const data = await AsyncStorage.getItem('readings');
+      const data = await Storage.getItem('readings');
       const all = data ? JSON.parse(data) : [];
       const updated = all.filter((r) => r.id !== id);
-      await AsyncStorage.setItem('readings', JSON.stringify(updated));
+      await Storage.setItem('readings', JSON.stringify(updated));
       // Re-sort after deletion
       const sorted = [...updated].sort((a, b) => {
         const tA = a.timestamp || parseInt(a.id, 10) || 0;
@@ -106,8 +106,8 @@ export default function HistoryScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem('readings');
-              await AsyncStorage.removeItem('lastScanDate');
+              await Storage.removeItem('readings');
+              await Storage.removeItem('lastScanDate');
               setReadings([]);
             } catch (e) {
               console.error('clearHistory error:', e);

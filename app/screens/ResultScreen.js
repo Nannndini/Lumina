@@ -5,9 +5,9 @@
 
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import CompatibilityChart from '../components/CompatibilityChart';
+import { Storage } from '../lib/storage';
 
 export default function ResultScreen({ route, navigation }) {
   const { result, imageUri } = route.params || {};
@@ -57,7 +57,7 @@ export default function ResultScreen({ route, navigation }) {
 
   async function saveReading() {
     try {
-      const existing = await AsyncStorage.getItem('readings');
+      const existing = await Storage.getItem('readings');
       const readings = existing ? JSON.parse(existing) : [];
       // Avoid duplicate saves on re-render
       if (readings[0]?.id === result._saveId) return;
@@ -72,9 +72,9 @@ export default function ResultScreen({ route, navigation }) {
       };
       readings.unshift(newReading);
       const serialized = JSON.stringify(readings.slice(0, 50));
-      await AsyncStorage.setItem('readings', serialized);
+      await Storage.setItem('readings', serialized);
       // Verify the save succeeded (debug)
-      const saved = await AsyncStorage.getItem('readings');
+      const saved = await Storage.getItem('readings');
       console.log('SAVED READINGS:', saved);
       console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 50).length);
     } catch (e) {
@@ -116,7 +116,10 @@ export default function ResultScreen({ route, navigation }) {
   });
 
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030', '#0d001a']} style={styles.container}>
+    <LinearGradient
+      colors={['#0a0015', '#1a0030', '#0d001a']}
+      style={[styles.container, Platform.OS === 'web' && { overflow: 'auto' }]}
+    >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
