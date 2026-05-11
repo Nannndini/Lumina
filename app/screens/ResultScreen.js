@@ -73,6 +73,9 @@ export default function ResultScreen({ route, navigation }) {
       readings.unshift(newReading);
       const serialized = JSON.stringify(readings.slice(0, 50));
       await AsyncStorage.setItem('readings', serialized);
+      // Verify the save succeeded (debug)
+      const saved = await AsyncStorage.getItem('readings');
+      console.log('SAVED READINGS:', saved);
       console.log('saveReading: saved reading id', saveId, '— total stored:', readings.slice(0, 50).length);
     } catch (e) {
       console.error('saveReading error:', e);
@@ -114,7 +117,7 @@ export default function ResultScreen({ route, navigation }) {
 
   return (
     <LinearGradient colors={['#0a0015', '#1a0030', '#0d001a']} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
@@ -246,7 +249,8 @@ export default function ResultScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingTop: 50, alignItems: 'center', paddingBottom: 40 },
+  scroll: { flex: 1 },
+  content: { padding: 20, paddingTop: 50, alignItems: 'center', paddingBottom: 60 },
 
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   errorText: { color: '#fff', fontSize: 18, marginBottom: 20 },
@@ -265,7 +269,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    overflow: 'hidden',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 20,

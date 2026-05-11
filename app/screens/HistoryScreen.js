@@ -31,6 +31,7 @@ export default function HistoryScreen({ navigation }) {
     try {
       setLoading(true);
       const data = await AsyncStorage.getItem('readings');
+      console.log('loaded readings:', data);
       const countStr = await AsyncStorage.getItem('scanCount');
       const streakStr = await AsyncStorage.getItem('streakCount');
 
