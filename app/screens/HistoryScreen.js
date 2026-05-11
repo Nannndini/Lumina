@@ -1,8 +1,7 @@
 /**
- * HistoryScreen — displays all past aura readings.
- * Features: tap-to-navigate (Req 9.1), colored left border (Req 9.2),
- *           newest-first sort (Req 9.3), streak header (Req 9.4),
- *           long-press delete (Req 9.5, 9.6)
+ * HistoryScreen — polished reading history.
+ * First-prize worthy: colored left borders, tap-to-navigate, stats header,
+ * long-press delete, improved empty state, legacy key migration.
  */
 
 import { useState, useCallback } from 'react';
@@ -20,7 +19,6 @@ export default function HistoryScreen({ navigation }) {
   const [scanCount, setScanCount] = useState(0);
   const [streakCount, setStreakCount] = useState(0);
 
-  // Reload every time screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadReadings();
@@ -33,28 +31,26 @@ export default function HistoryScreen({ navigation }) {
 
       let data = await Storage.getItem('readings');
 
-      // On web, also check legacy prefixed keys and migrate data if found
+      // Migrate legacy prefixed keys on web
       if (Platform.OS === 'web' && !data) {
         data = localStorage.getItem('Lumina_readings') || localStorage.getItem('lumina_readings') || null;
         if (data) {
-          // Migrate to bare key and clean up old keys
           localStorage.setItem('readings', data);
           localStorage.removeItem('Lumina_readings');
           localStorage.removeItem('lumina_readings');
-          console.log('Migrated readings from legacy key to bare key');
+          console.log('Migrated readings from legacy key');
         }
       }
 
       console.log('loaded readings:', data ? JSON.parse(data).length + ' readings' : 'null');
+
       const countStr = await Storage.getItem('scanCount');
       const streakStr = await Storage.getItem('streakCount');
-
       setScanCount(countStr ? parseInt(countStr, 10) : 0);
       setStreakCount(streakStr ? parseInt(streakStr, 10) : 0);
 
       if (data) {
         const parsed = JSON.parse(data);
-        // Sort newest-first by timestamp, falling back to id (Req 9.3, Property 14)
         const sorted = [...parsed].sort((a, b) => {
           const tA = a.timestamp || parseInt(a.id, 10) || 0;
           const tB = b.timestamp || parseInt(b.id, 10) || 0;
@@ -72,16 +68,12 @@ export default function HistoryScreen({ navigation }) {
     }
   }
 
-  /**
-   * Deletes a single reading by ID (Req 9.5, 9.6, Property 15)
-   */
   async function deleteReading(id) {
     try {
       const data = await Storage.getItem('readings');
       const all = data ? JSON.parse(data) : [];
       const updated = all.filter((r) => r.id !== id);
       await Storage.setItem('readings', JSON.stringify(updated));
-      // Re-sort after deletion
       const sorted = [...updated].sort((a, b) => {
         const tA = a.timestamp || parseInt(a.id, 10) || 0;
         const tB = b.timestamp || parseInt(b.id, 10) || 0;
@@ -100,11 +92,7 @@ export default function HistoryScreen({ navigation }) {
       `Delete your ${reading.color} Aura reading from ${reading.date}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteReading(reading.id),
-        },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteReading(reading.id) },
       ]
     );
   }
@@ -121,7 +109,6 @@ export default function HistoryScreen({ navigation }) {
           onPress: async () => {
             try {
               if (Platform.OS === 'web') {
-                // Nuke all key variants that may exist from previous storage implementations
                 localStorage.removeItem('readings');
                 localStorage.removeItem('Lumina_readings');
                 localStorage.removeItem('lumina_readings');
@@ -144,6 +131,7 @@ export default function HistoryScreen({ navigation }) {
 
   return (
     <LinearGradient colors={['#0a0015', '#1a0030', '#0d001a']} style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>← Back</Text>
@@ -161,91 +149,82 @@ export default function HistoryScreen({ navigation }) {
           <Text style={styles.loadingText}>Loading your cosmic history...</Text>
         )}
 
+        {/* Empty state */}
         {!loading && readings.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🌌</Text>
-            <Text style={styles.empty}>No readings yet.</Text>
-            <Text style={styles.emptySub}>Scan your aura to begin your cosmic journey!</Text>
+            <Text style={styles.emptyEmoji}>🔮</Text>
+            <Text style={styles.empty}>No readings yet ✨</Text>
+            <Text style={styles.emptySub}>Scan your aura to begin your cosmic journey</Text>
             <TouchableOpacity style={styles.scanNowBtn} onPress={() => navigation.goBack()}>
               <Text style={styles.scanNowText}>✨ Scan Now</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Streak header (Req 9.4) */}
+        {/* Stats header */}
         {!loading && readings.length > 0 && (
           <View style={styles.statsHeader}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{scanCount}</Text>
-              <Text style={styles.statLabel}>Total Scans</Text>
+            <View style={styles.statBadge}>
+              <Text style={styles.statBadgeText}>{scanCount} Total Scans</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{streakCount > 0 ? `🔥 ${streakCount}` : '—'}</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{readings.length}</Text>
-              <Text style={styles.statLabel}>Saved</Text>
+            {streakCount > 0 && (
+              <View style={[styles.statBadge, styles.statBadgeStreak]}>
+                <Text style={[styles.statBadgeText, styles.statBadgeStreakText]}>
+                  {streakCount >= 7 ? '🌟' : '🔥'} {streakCount} Day Streak
+                </Text>
+              </View>
+            )}
+            <View style={styles.statBadge}>
+              <Text style={styles.statBadgeText}>{readings.length} Saved</Text>
             </View>
           </View>
         )}
 
-        {readings.map((r) => (
-          <TouchableOpacity
-            key={r.id}
-            onPress={() => navigation.navigate('Result', { result: r, imageUri: r.imageUri })}
-            onLongPress={() => handleLongPress(r)}
-            delayLongPress={500}
-            activeOpacity={0.75}
-          >
-            {/* Card with colored left border (Req 9.2, Property 9) */}
-            <View style={styles.cardWrapper}>
-              <View style={[styles.leftBorder, { backgroundColor: r.hex || '#a855f7' }]} />
-              <View style={[styles.card, { borderColor: (r.hex || '#a855f7') + '40' }]}>
-                {/* Left: photo */}
-                <View style={styles.cardLeft}>
-                  {r.imageUri ? (
-                    <Image
-                      source={{ uri: r.imageUri }}
-                      style={[styles.thumb, { borderColor: r.hex || '#a855f7' }]}
-                    />
-                  ) : (
-                    <View style={[styles.thumbPlaceholder, { borderColor: r.hex || '#a855f7', backgroundColor: (r.hex || '#a855f7') + '30' }]}>
-                      <Text style={styles.thumbEmoji}>🌟</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Right: info */}
-                <View style={styles.cardRight}>
-                  <View style={styles.cardTopRow}>
-                    <View style={[styles.dot, { backgroundColor: r.hex || '#a855f7' }]} />
-                    <Text style={styles.cardColor}>{r.color} Aura</Text>
-                    {r.mood && <Text style={styles.cardMood}>{r.mood}</Text>}
+        {/* Reading cards */}
+        {readings.map((r) => {
+          const hex = r.hex || '#a855f7';
+          return (
+            <TouchableOpacity
+              key={r.id}
+              onPress={() => navigation.navigate('Result', { result: r, imageUri: r.imageUri })}
+              onLongPress={() => handleLongPress(r)}
+              delayLongPress={500}
+              activeOpacity={0.78}
+            >
+              <View style={styles.cardWrapper}>
+                {/* Colored left border accent */}
+                <View style={[styles.leftBorder, { backgroundColor: hex }]} />
+                <View style={[styles.card, { backgroundColor: hex + '10', borderColor: hex + '40' }]}>
+                  {/* Photo */}
+                  <View style={styles.cardLeft}>
+                    {r.imageUri ? (
+                      <Image
+                        source={{ uri: r.imageUri }}
+                        style={[styles.thumb, { borderColor: hex, shadowColor: hex }]}
+                      />
+                    ) : (
+                      <View style={[styles.thumbPlaceholder, { borderColor: hex, backgroundColor: hex + '30' }]}>
+                        <Text style={styles.thumbEmoji}>🌟</Text>
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.cardArchetype}>{r.archetype}</Text>
-                  <Text style={[styles.cardScore, { color: r.hex || '#a855f7' }]}>
-                    {r.vibe_score}/100
-                  </Text>
-                  <Text style={styles.cardTitle}>{r.title}</Text>
-                  <Text style={styles.cardDate}>📅 {r.date}</Text>
-                </View>
 
-                {/* Score bar */}
-                <View style={styles.cardBarBg}>
-                  <View
-                    style={[
-                      styles.cardBarFill,
-                      { height: `${r.vibe_score}%`, backgroundColor: r.hex || '#a855f7' },
-                    ]}
-                  />
+                  {/* Info */}
+                  <View style={styles.cardRight}>
+                    <View style={styles.cardTopRow}>
+                      <Text style={[styles.cardColor, { color: hex }]}>{r.color} Aura</Text>
+                      {r.mood && <Text style={styles.cardMood}>{r.mood}</Text>}
+                    </View>
+                    <Text style={styles.cardArchetype}>{r.archetype}</Text>
+                    <Text style={[styles.cardScore, { color: hex }]}>{r.vibe_score}/100</Text>
+                    <Text style={styles.cardTitle}>{r.title}</Text>
+                    <Text style={styles.cardDate}>📅 {r.date}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
 
         {readings.length > 0 && (
           <Text style={styles.longPressHint}>Long-press a reading to delete it</Text>
@@ -268,40 +247,56 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   clearBtn: { color: '#ef4444', fontSize: 14 },
 
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: 20, paddingBottom: 50 },
 
   loadingText: { color: '#a855f7', textAlign: 'center', marginTop: 50, fontSize: 15 },
 
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyEmoji: { fontSize: 56, marginBottom: 16 },
-  empty: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
-  emptySub: { color: '#c084fc', fontSize: 14, textAlign: 'center', marginBottom: 24 },
+  emptyEmoji: { fontSize: 64, marginBottom: 16 },
+  empty: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
+  emptySub: { color: '#c084fc', fontSize: 14, textAlign: 'center', marginBottom: 28 },
   scanNowBtn: {
     backgroundColor: '#7c3aed',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  scanNowText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  scanNowText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 
-  // Stats header (Req 9.4)
+  // Stats header
   statsHeader: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff08',
-    borderRadius: 16,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+    justifyContent: 'center',
+  },
+  statBadge: {
+    backgroundColor: '#ffffff10',
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#a855f730',
-    padding: 16,
-    marginBottom: 20,
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  statItem: { alignItems: 'center' },
-  statValue: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
-  statLabel: { color: '#ffffff60', fontSize: 11, letterSpacing: 0.5 },
-  statDivider: { width: 1, height: 36, backgroundColor: '#ffffff20' },
+  statBadgeStreak: {
+    borderColor: '#f9731660',
+    backgroundColor: '#f9731615',
+  },
+  statBadgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statBadgeStreakText: {
+    color: '#f97316',
+  },
 
-  // Card with left border
+  // Card
   cardWrapper: {
     flexDirection: 'row',
     marginBottom: 14,
@@ -310,51 +305,46 @@ const styles = StyleSheet.create({
   },
   leftBorder: {
     width: 4,
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 18,
   },
   card: {
     flex: 1,
-    backgroundColor: '#ffffff08',
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
     borderWidth: 1,
     borderLeftWidth: 0,
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
-    gap: 14,
+    gap: 12,
     alignItems: 'center',
   },
   cardLeft: { justifyContent: 'center' },
-  thumb: { width: 64, height: 64, borderRadius: 32, borderWidth: 2 },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   thumbPlaceholder: {
-    width: 64, height: 64, borderRadius: 32, borderWidth: 2,
+    width: 56, height: 56, borderRadius: 28, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
   },
-  thumbEmoji: { fontSize: 28 },
+  thumbEmoji: { fontSize: 24 },
 
   cardRight: { flex: 1 },
-  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  cardColor: { color: '#fff', fontWeight: 'bold', fontSize: 15, flex: 1 },
-  cardMood: { fontSize: 16 },
-  cardArchetype: { color: '#c084fc', fontSize: 13, marginBottom: 4 },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
+  cardColor: { fontWeight: 'bold', fontSize: 15, flex: 1 },
+  cardMood: { fontSize: 15 },
+  cardArchetype: { color: '#c084fc', fontSize: 12, marginBottom: 3 },
   cardScore: { fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
-  cardTitle: { color: '#ffffff80', fontSize: 12, marginBottom: 4 },
-  cardDate: { color: '#666', fontSize: 12 },
-
-  cardBarBg: {
-    width: 6,
-    height: 64,
-    backgroundColor: '#ffffff15',
-    borderRadius: 3,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  cardBarFill: { width: 6, borderRadius: 3 },
+  cardTitle: { color: '#ffffff70', fontSize: 11, marginBottom: 3 },
+  cardDate: { color: '#555', fontSize: 11 },
 
   longPressHint: {
-    color: '#ffffff30',
+    color: '#ffffff25',
     fontSize: 11,
     textAlign: 'center',
     marginTop: 8,

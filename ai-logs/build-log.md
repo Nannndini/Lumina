@@ -173,3 +173,65 @@ git push origin main
 | `vercel.json` | New — Vercel deployment config |
 | `README.md` | Full project documentation |
 | `ai-logs/build-log.md` | New — this build log |
+
+---
+
+## Build Session: First-Prize Polish Pass
+
+### Goal
+Make every pixel intentional and every interaction magical for the contest judges.
+Judges score: (1) Visual design of results, (2) AI integration quality, (3) Shareability.
+
+### ResultScreen — Stunning Shareable Card
+
+- **Max width 440px**, centered on all screen sizes
+- **Radial gradient card background** (web): `radial-gradient(ellipse at top, ${hex}25 0%, #0a0015 60%)`
+- **Card border + box-shadow** (web): `1px solid ${hex}50`, `box-shadow: 0 0 40px ${hex}30`
+- **Photo glow** (web): `box-shadow: 0 0 50px 15px ${hex}60`, `border: 3px solid ${hex}`
+- **Color badge**: uppercase, `font-weight: 800`, `letter-spacing: 2px`
+- **Vibe score**: 88px, `font-weight: 900`, `text-shadow: 0 0 30px ${hex}` (web)
+- **Progress bar**: 1.5s animated fill, `box-shadow: 0 0 10px ${hex}` (web)
+- **Breakdown text**: 14px italic, `#d4c5f9`, `line-height: 25`
+- **Strength pills**: `${hex}20` background, `${hex}60` border
+- **Shadow side**: small italic `#888`
+- **Compatibility**: italic `${hex}cc`
+- **Watermark**: `✨ Lumina — AI Aura Reading` in `${hex}80`
+- **Copy Link button**: full-width solid `${hex}` background, copies rich share text with live URL
+- **Hover effect** (web): `translateY(-2px)` + brightness boost on copy button
+- **Scroll fix**: outer `View` has `overflow: 'auto'` on web, `ScrollView` has `flex: 1`
+
+### HomeScreen — Magical Premium Experience
+
+- **60 floating stars**: 4 size tiers (2/3/4/6px), 4 speeds (7/10/14/18s), opacity 0.3–1.0
+- **Shimmer title**: CSS `linear-gradient(90deg, #c084fc, #f472b6, #c084fc)` animated
+- **Ambient glow**: radial glow behind upload circle using last aura hex
+- **Welcome back**: colored in last aura hex, shows last reading summary
+- **Upload circle**: 220px, pulsing ring with random aura color on photo select
+- **Scan button** (web): `linear-gradient(135deg, #7c3aed, #a855f7)`, hover lift + glow
+- **Evolution badge**: full-width with progress bar
+- **Streak badge**: 🔥 for 1–6 days, 🌟 for 7+ days, orange styling
+- **Mood selector**: 6 emoji buttons, selected state highlighted
+- **Error banner**: friendly message + "Try Again" button
+
+### HistoryScreen — Polished & Interactive
+
+- **Stats header**: badge row showing Total Scans, Day Streak, Saved count
+- **Left border accent**: 4px solid `${reading.hex}` on each card
+- **Card background tint**: `${hex}10` per card
+- **Photo glow**: `shadowColor: hex` on thumbnail
+- **Tap to navigate**: tapping any card opens full ResultScreen
+- **Long-press delete**: confirmation dialog
+- **Empty state**: 🔮 crystal ball emoji, "No readings yet ✨", purple CTA button
+- **Legacy key migration**: auto-migrates `Lumina_readings` / `lumina_readings` to bare key
+
+### Storage
+
+- `Storage` utility uses bare keys on web (no prefix) via direct `localStorage`
+- Reading saved in `HomeScreen.scanMyAura()` before `navigation.navigate()`
+- `ResultScreen.saveReading()` skips if `result.id` already set (no duplicate)
+
+### Commit
+
+```
+feat: first-prize worthy Lumina - stunning result card, premium UI, working storage, cosmic loader
+```
