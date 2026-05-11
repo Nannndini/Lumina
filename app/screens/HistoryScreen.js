@@ -181,7 +181,7 @@ export default function HistoryScreen({ navigation }) {
         )}
 
         {/* Reading cards */}
-        {readings.map((r) => {
+        {readings.map((r, index) => {
           const hex = r.hex || '#a855f7';
           return (
             <TouchableOpacity
@@ -194,33 +194,86 @@ export default function HistoryScreen({ navigation }) {
               <View style={styles.cardWrapper}>
                 {/* Colored left border accent */}
                 <View style={[styles.leftBorder, { backgroundColor: hex }]} />
-                <View style={[styles.card, { backgroundColor: hex + '10', borderColor: hex + '40' }]}>
-                  {/* Photo */}
-                  <View style={styles.cardLeft}>
-                    {r.imageUri ? (
-                      <Image
-                        source={{ uri: r.imageUri }}
-                        style={[styles.thumb, { borderColor: hex, shadowColor: hex }]}
-                      />
-                    ) : (
-                      <View style={[styles.thumbPlaceholder, { borderColor: hex, backgroundColor: hex + '30' }]}>
-                        <Text style={styles.thumbEmoji}>🌟</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Info */}
-                  <View style={styles.cardRight}>
-                    <View style={styles.cardTopRow}>
-                      <Text style={[styles.cardColor, { color: hex }]}>{r.color} Aura</Text>
-                      {r.mood && <Text style={styles.cardMood}>{r.mood}</Text>}
+                {Platform.OS === 'web' ? (
+                  <div
+                    className="history-card-slide"
+                    style={{
+                      flex: 1,
+                      borderTopRightRadius: 18,
+                      borderBottomRightRadius: 18,
+                      border: `1px solid ${hex}40`,
+                      borderLeft: 'none',
+                      padding: 14,
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 12,
+                      alignItems: 'center',
+                      backgroundColor: hex + '10',
+                      animationDelay: `${index * 0.1}s`,
+                    }}
+                  >
+                    {/* Photo */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {r.imageUri ? (
+                        <img
+                          src={r.imageUri}
+                          style={{
+                            width: 56, height: 56, borderRadius: 28,
+                            border: `2px solid ${hex}`,
+                            objectFit: 'cover',
+                          }}
+                          alt="aura"
+                        />
+                      ) : (
+                        <div style={{
+                          width: 56, height: 56, borderRadius: 28,
+                          border: `2px solid ${hex}`,
+                          backgroundColor: hex + '30',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 24,
+                        }}>🌟</div>
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <span style={{ color: hex, fontWeight: 'bold', fontSize: 15 }}>{r.color} Aura</span>
+                        {r.mood && <span style={{ fontSize: 15 }}>{r.mood}</span>}
+                      </div>
+                      <div style={{ color: '#c084fc', fontSize: 12, marginBottom: 3 }}>{r.archetype}</div>
+                      <div style={{ color: hex, fontSize: 20, fontWeight: 'bold', marginBottom: 2 }}>{r.vibe_score}/100</div>
+                      <div style={{ color: 'rgba(255,255,255,0.44)', fontSize: 11, marginBottom: 3 }}>{r.title}</div>
+                      <div style={{ color: '#555', fontSize: 11 }}>📅 {r.date}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <View style={[styles.card, { backgroundColor: hex + '10', borderColor: hex + '40' }]}>
+                    {/* Photo */}
+                    <View style={styles.cardLeft}>
+                      {r.imageUri ? (
+                        <Image
+                          source={{ uri: r.imageUri }}
+                          style={[styles.thumb, { borderColor: hex, shadowColor: hex }]}
+                        />
+                      ) : (
+                        <View style={[styles.thumbPlaceholder, { borderColor: hex, backgroundColor: hex + '30' }]}>
+                          <Text style={styles.thumbEmoji}>🌟</Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.cardArchetype}>{r.archetype}</Text>
-                    <Text style={[styles.cardScore, { color: hex }]}>{r.vibe_score}/100</Text>
-                    <Text style={styles.cardTitle}>{r.title}</Text>
-                    <Text style={styles.cardDate}>📅 {r.date}</Text>
+                    {/* Info */}
+                    <View style={styles.cardRight}>
+                      <View style={styles.cardTopRow}>
+                        <Text style={[styles.cardColor, { color: hex }]}>{r.color} Aura</Text>
+                        {r.mood && <Text style={styles.cardMood}>{r.mood}</Text>}
+                      </View>
+                      <Text style={styles.cardArchetype}>{r.archetype}</Text>
+                      <Text style={[styles.cardScore, { color: hex }]}>{r.vibe_score}/100</Text>
+                      <Text style={styles.cardTitle}>{r.title}</Text>
+                      <Text style={styles.cardDate}>📅 {r.date}</Text>
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             </TouchableOpacity>
           );

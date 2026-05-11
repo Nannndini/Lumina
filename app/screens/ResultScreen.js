@@ -35,6 +35,7 @@ if (Platform.OS === 'web') {
 export default function ResultScreen({ route, navigation }) {
   const { result, imageUri } = route.params || {};
   const [copied, setCopied] = useState(false);
+  const [displayScore, setDisplayScore] = useState(0);
   const barAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
@@ -75,6 +76,16 @@ export default function ResultScreen({ route, navigation }) {
       delay: 600,
       useNativeDriver: false,
     }).start();
+
+    // Vibe score counter animation: count up from 0 to actual score
+    const target = result.vibe_score;
+    let current = 0;
+    const interval = setInterval(() => {
+      current = Math.min(current + 2, target);
+      setDisplayScore(current);
+      if (current >= target) clearInterval(interval);
+    }, 30);
+    return () => clearInterval(interval);
   }, []);
 
   async function saveReading() {
@@ -178,7 +189,7 @@ export default function ResultScreen({ route, navigation }) {
           {/* Web card gets radial gradient + box-shadow via inline style */}
           {Platform.OS === 'web' && (
             <div
-              className="lumina-card-web"
+              className="lumina-card-web result-card"
               style={{
                 ...webCardStyle,
                 position: 'absolute',
@@ -248,7 +259,7 @@ export default function ResultScreen({ route, navigation }) {
                   Platform.OS === 'web' && webScoreStyle,
                 ]}
               >
-                {result.vibe_score}
+                {displayScore}
               </Text>
               <Text style={[styles.scoreMax, { color: hexMid }]}>/100</Text>
             </View>

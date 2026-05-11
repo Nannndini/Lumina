@@ -71,9 +71,10 @@ if (Platform.OS === 'web') {
     `;
     document.head.appendChild(style);
 
-    // Spawn 60 stars — 4 size tiers, 4 speeds, varying opacity
+    // Spawn 60 stars — 4 size tiers, 4 speeds, varying opacity, with twinkle
     const sizes = [2, 3, 4, 6];
     const durations = [7, 10, 14, 18];
+    const twinkleDurations = [2, 2.5, 3, 3.5, 4];
     for (let i = 0; i < 60; i++) {
       const star = document.createElement('div');
       star.className = 'lumina-star';
@@ -82,8 +83,12 @@ if (Platform.OS === 'web') {
       star.style.width = size + 'px';
       star.style.height = size + 'px';
       star.style.left = Math.random() * 100 + 'vw';
-      star.style.animationDuration = durations[tier] + 's';
-      star.style.animationDelay = (Math.random() * 12) + 's';
+      // Combine float + twinkle animations
+      const floatDur = durations[tier] + 's';
+      const twinkleDur = twinkleDurations[Math.floor(Math.random() * twinkleDurations.length)] + 's';
+      const twinkleDelay = (Math.random() * 3).toFixed(2) + 's';
+      star.style.animation = `floatStar ${floatDur} linear infinite, twinkle ${twinkleDur} ease ${twinkleDelay} infinite`;
+      star.style.animationDelay = (Math.random() * 12) + 's, ' + twinkleDelay;
       star.style.opacity = (0.3 + Math.random() * 0.7).toFixed(2);
       document.body.appendChild(star);
     }
@@ -244,7 +249,7 @@ export default function HomeScreen({ navigation }) {
       <LinearGradient colors={['#0a0015', '#1a0030', '#0d001a']} style={styles.container}>
         <View style={styles.content}>
           {Platform.OS === 'web' ? (
-            <h1 className="lumina-title">✨ Lumina</h1>
+            <h1 className="shimmer-text">✨ Lumina</h1>
           ) : (
             <Text style={styles.appName}>✨ Lumina</Text>
           )}
@@ -276,7 +281,11 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030', '#0d001a']} style={styles.container}>
+    <LinearGradient
+      colors={['#0a0015', '#1a0030', '#0d001a']}
+      style={styles.container}
+      {...(Platform.OS === 'web' ? { className: 'aurora-bg' } : {})}
+    >
       {/* Ambient glow from last reading */}
       {lastReading && (
         <View style={[styles.ambientGlow, { backgroundColor: ambientHex + '15', shadowColor: ambientHex }]} />
@@ -290,7 +299,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Shimmer title */}
         {Platform.OS === 'web' ? (
-          <h1 className="lumina-title">✨ Lumina</h1>
+          <h1 className="shimmer-text">✨ Lumina</h1>
         ) : (
           <Text style={styles.appName}>✨ Lumina</Text>
         )}
@@ -307,7 +316,7 @@ export default function HomeScreen({ navigation }) {
         <EvolutionBadge scanCount={scanCount} />
         <StreakBadge streak={streakCount} />
 
-        {/* Upload circle with pulsing ring */}
+        {/* Upload circle with pulsing ring + orbit rings on web */}
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
             <PulsingRing visible={!!image} color={ringColor} size={220}>
@@ -321,6 +330,14 @@ export default function HomeScreen({ navigation }) {
                 </View>
               )}
             </PulsingRing>
+            {/* Orbit rings — web only, shown when photo selected */}
+            {Platform.OS === 'web' && image && (
+              <div className="ring-container">
+                <div className="ring ring1" />
+                <div className="ring ring2" />
+                <div className="ring ring3" />
+              </div>
+            )}
           </TouchableOpacity>
         </Animated.View>
 
@@ -348,7 +365,7 @@ export default function HomeScreen({ navigation }) {
         {/* Scan button */}
         {Platform.OS === 'web' ? (
           <div
-            className={(!image || loading) ? '' : 'lumina-scan-btn'}
+            className={(!image || loading) ? 'lumina-scan-btn' : 'lumina-scan-btn scan-btn-pulse'}
             onClick={(!image || loading) ? undefined : scanMyAura}
             style={{
               width: '100%',
